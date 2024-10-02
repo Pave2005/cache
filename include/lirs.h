@@ -200,13 +200,6 @@ namespace lirs_cache
             }
         }
 
-        ~cache()
-        {
-            cache_storage.clear();;
-            hirs_cache.clear();
-            cache_history.clear();
-        }
-
         int get_block (int elem)
         {
             if (!(cache_storage.count(elem)))

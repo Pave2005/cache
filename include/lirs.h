@@ -11,8 +11,6 @@
 #include <ios>
 #include <vector>
 
-#include "file.h"
-
 namespace lirs_cache
 {
     template <typename T>
@@ -227,30 +225,25 @@ namespace lirs_cache
         }
     };
 
-    template <typename T>  // создать отдельное пространство имен
+    template <typename T>
     class cache_interface
     {
     private:
-        const std::string filename;
         int cache_size;
         int data_size;
 
     public:
-        cache_interface(const std::string& filename) : filename(filename) {}
-
         int count_cache_hits ()
         {
-            file::file_t<T> file(filename);
-            std::vector<T> buff;
-            file.get_file (buff, cache_size, data_size);
-
-            //std::cout << cache_size << " " << data_size << std::endl;
+            std::cin >> cache_size >> data_size;
 
             int hits = 0;
             cache<T> lirs_cache(cache_size);
 
-            for (T elem : buff)
+            for (int i = 0; i < data_size; i++)
             {
+                T elem = 0;
+                std::cin >> elem;
                 hits += lirs_cache.get_block(elem);
             }
 

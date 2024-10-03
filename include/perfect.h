@@ -8,8 +8,6 @@
 #include <algorithm>
 #include <utility>
 
-#include "file.h"
-
 namespace perf_cache
 {
     template <typename T>
@@ -96,17 +94,21 @@ namespace perf_cache
     class cache_interface
     {
     private:
-        const std::string filename;
         int cache_size;
         int data_size;
 
         void set_requests(std::vector<T>& requests, std::unordered_map<T, int>& requests_storage)
         {
-            file::file_t<T> file(filename);
-            file.get_file (requests, cache_size, data_size);
+            std::cin >> cache_size >> data_size;
 
-            for (T page : requests)
+            requests.reserve(data_size);
+
+            for (int i = 0; i < data_size; i++)
             {
+                T page = 0;
+                std::cin >> page;
+                requests.push_back(page);
+
                 if (requests_storage.count(page))
                 {
                     requests_storage[page] ++;
@@ -119,8 +121,6 @@ namespace perf_cache
         }
 
     public:
-        cache_interface(const std::string& filename) : filename(filename) {}
-
         int count_cache_hits ()
         {
             int hits = 0;
@@ -129,7 +129,7 @@ namespace perf_cache
 
             set_requests(requests, requests_storage);
 
-            perf_cache::perf_cache_t<T> cache(cache_size, requests, requests_storage);
+            perf_cache_t<T> cache(cache_size, requests, requests_storage);
 
             for (int i = 0; i < data_size; i++)
             {

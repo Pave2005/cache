@@ -9,21 +9,79 @@
 
 #include "lirs.h"
 #include "perfect.h"
+#include "file.h"
 
 namespace test_funcs
 {
+    void set_requests (const std::string& filename, std::vector<int>& requests,
+                       std::unordered_map<int, int>& requests_storage, int& cache_size, int& data_size)
+    {
+        file::file_t<int> file(filename);
+        file.get_file (requests, cache_size, data_size);
+
+        for (int page : requests)
+        {
+            if (requests_storage.count(page))
+            {
+                requests_storage[page] ++;
+            }
+            else
+            {
+                requests_storage.insert({page, 1});
+            }
+        }
+    }
+
+    int count_cache_hits (perf_cache::perf_cache_t<int>& cache, const std::vector<int>& requests, int data_size)
+    {
+        int hits = 0;
+
+        for (int i = 0; i < data_size; i++)
+        {
+            hits += cache.get_block(requests[i]);
+        }
+
+        return hits;
+    }
+
+    int count_cache_hits (const std::string& filename)
+    {
+        int cache_size = 0;
+        int data_size = 0;
+        file::file_t<int> file(filename);
+        std::vector<int> buff;
+        file.get_file (buff, cache_size, data_size);
+
+        int hits = 0;
+        lirs_cache::cache<int> lirs_cache(cache_size);
+
+        for (int elem : buff)
+        {
+            hits += lirs_cache.get_block(elem);
+        }
+
+        return hits;
+    }
+
 	std::string get_result (const std::string& filename, bool perf)
     {
         int hits  = 0;
         if (perf)
         {
-            perf_cache::cache_interface<int> cache(filename);
-            hits = cache.count_cache_hits();
+            int cache_size = 0;
+            int data_size = 0;
+            std::vector<int> requests;
+            std::unordered_map<int, int> requests_storage;
+
+            set_requests(filename, requests, requests_storage, cache_size, data_size);
+
+            perf_cache::perf_cache_t<int> cache(cache_size, requests, requests_storage);
+
+            hits = count_cache_hits (cache, requests, data_size);
         }
         else
         {
-            lirs_cache::cache_interface<int> cache(filename);
-            hits = cache.count_cache_hits();
+            hits = count_cache_hits (filename);
         }
 
         return std::to_string(hits);

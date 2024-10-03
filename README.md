@@ -2,36 +2,21 @@
 ## Default options
 ### run example
 
-```
+```sh
 mkdir build
-```
-```
 cd build
-```
-```
 cmake ..
-```
-```
 make
-```
-
-```
 ./lirs
 ```
  or
-```
+```sh
 ./perfect
 ```
 
  ### run tests
-
-```
-cmake ..
-```
-```
-make`
-```
-```
+running tests from build directory
+```sh
 ctest
 ```
 
@@ -39,12 +24,8 @@ ctest
 
 ### run 10 million elements test
 
-```
+```sh
 cmake -DENABLE_EXTRA=ON ..
-```
-```
 make
-```
-```
 ctest
 ```

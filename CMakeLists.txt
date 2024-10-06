@@ -15,9 +15,6 @@ option(ENABLE_EXTRA "Big data extra tests for lirs and perfect" OFF)
 
 set(RELEASE_COMPILE_OPTIONS
 	-O2
-	-fstack-protector
-	-fPIE
-	-fstrict-overflow
 	-Wformat-security
 	-Wformat=2
 	-Wall

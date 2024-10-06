@@ -2,7 +2,7 @@
 
 int main ()
 {
-    lirs_cache::cache_interface<int> cache;
+    lirs_cache::cache<int> cache(std::cin);
 
     int hits = cache.count_cache_hits();
 

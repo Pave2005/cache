@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include <utility>
+#include <istream>
 
 namespace perf_cache
 {
@@ -18,7 +19,10 @@ namespace perf_cache
         using VecIt  = typename std::vector<T>::iterator;
         using ItDiff = typename std::vector<T>::iterator::difference_type;
 
-        int capacity;
+        std::istream& stream;
+
+        int cache_size;
+        int data_size;
         int request_counter = 0;
 
         std::list<T> cache;
@@ -61,52 +65,16 @@ namespace perf_cache
         }
 
     public:
-        perf_cache_t(int capacity, const std::vector<T>& requests, const std::unordered_map<T, int>& requests_storage)
+        perf_cache_t(std::istream& stream) : stream(stream)
         {
-            this->capacity = capacity;
-            this->requests = requests;
-            this->requests_storage = requests_storage;
-        }
-
-        int get_block(T key)
-        {
-            request_counter++;
-            requests_storage[key] --;
-
-            if (cache_storage.count(key)) return 1;
-            else if (requests_storage[key] == 0) return 0;
-
-            if (cache.size() < capacity)
-            {
-                cache.push_front(key);
-                cache_storage.emplace(key, cache.begin());
-
-                return 0;
-            }
-
-            replace_farthest_elem (key);
-
-            return 0;
-        }
-    };
-
-    template <typename T>
-    class cache_interface
-    {
-    private:
-        int cache_size;
-        int data_size;
-
-        void set_requests(std::vector<T>& requests, std::unordered_map<T, int>& requests_storage)
-        {
-            std::cin >> cache_size >> data_size;
+            stream >> cache_size >> data_size;
 
             requests.reserve(data_size);
 
             for (int i = 0; i < data_size; i++)
             {
                 T page = 0;
-                std::cin >> page;
+                stream >> page;
                 requests.push_back(page);
 
                 if (requests_storage.count(page))
@@ -120,20 +88,34 @@ namespace perf_cache
             }
         }
 
-    public:
+        bool get_block (T key)
+        {
+            request_counter++;
+            requests_storage[key] --;
+
+            if (cache_storage.count(key)) return true;
+            else if (requests_storage[key] == 0) return false;
+
+            if (cache.size() < cache_size)
+            {
+                cache.push_front(key);
+                cache_storage.emplace(key, cache.begin());
+
+                return false;
+            }
+
+            replace_farthest_elem (key);
+
+            return false;
+        }
+
         int count_cache_hits ()
         {
             int hits = 0;
-            std::vector<T> requests;
-            std::unordered_map<T, int> requests_storage;
-
-            set_requests(requests, requests_storage);
-
-            perf_cache_t<T> cache(cache_size, requests, requests_storage);
 
             for (int i = 0; i < data_size; i++)
             {
-                hits += cache.get_block(requests[i]);
+                hits = get_block(requests[i]) ? hits + 1 : hits;
             }
 
             return hits;

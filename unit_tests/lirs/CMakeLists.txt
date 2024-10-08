@@ -10,9 +10,6 @@ find_package(GTest REQUIRED)
 
 set(COMPILE_OPTIONS
 	-O2
-	-fstack-protector
-	-fPIE
-	-fstrict-overflow
 	-Wformat-security
 	-Wformat=2
 	-Wall

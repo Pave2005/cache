@@ -8,24 +8,11 @@ add_definitions(-DTEST_DATA_DIR=\"${TEST_DATA_DIR}\")
 
 find_package(GTest REQUIRED)
 
-set(COMPILE_OPTIONS
-	-O2
-	-Wformat-security
-	-Wformat=2
-	-Wall
-	-Wextra
-	-Wnon-virtual-dtor
-	-Woverloaded-virtual
-	-Wcast-align
-	-Wpointer-arith
-	-Wunreachable-code
-)
-
 add_executable(perf_tests
 			   perf_tests.cpp
 			   main.cpp)
 
-target_compile_options(perf_tests PRIVATE ${COMPILE_OPTIONS})
+target_compile_options(perf_tests PRIVATE -O2)
 
 target_link_libraries(perf_tests
 					  GTest::GTest

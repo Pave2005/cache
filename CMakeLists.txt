@@ -13,26 +13,13 @@ option(BUILD_LIRS "Build the lirs executable" ON)
 option(BUILD_PERFECT "Build the perfect executable" ON)
 option(ENABLE_EXTRA "Big data extra tests for lirs and perfect" OFF)
 
-set(RELEASE_COMPILE_OPTIONS
-	-O2
-	-Wformat-security
-	-Wformat=2
-	-Wall
-	-Wextra
-	-Wnon-virtual-dtor
-	-Woverloaded-virtual
-	-Wcast-align
-	-Wpointer-arith
-	-Wunreachable-code
-)
-
 # ----- LIRS executable -----
 if(BUILD_LIRS)
 	add_executable(lirs ./lirs_cache.cpp)
 	target_include_directories(lirs PRIVATE
 		                       ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-	target_compile_options(lirs PRIVATE ${RELEASE_COMPILE_OPTIONS})
+	target_compile_options(lirs PRIVATE -O2)
 endif()
 
 # ----- PERFECT executable -----
@@ -41,5 +28,5 @@ if(BUILD_PERFECT)
 	target_include_directories(perfect PRIVATE
 		                       ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-	target_compile_options(perfect PRIVATE ${RELEASE_COMPILE_OPTIONS})
+	target_compile_options(perfect PRIVATE -O2)
 endif()

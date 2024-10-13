@@ -11,6 +11,7 @@
 #include <ios>
 #include <vector>
 #include <istream>
+#include <stdexcept>
 
 namespace lirs_cache
 {
@@ -28,7 +29,7 @@ namespace lirs_cache
         enum class loc_status
         {
             out = 0,
-            in = 1,
+            in  = 1,
         };
 
         struct node
@@ -40,9 +41,7 @@ namespace lirs_cache
             std::list<int>::iterator pos_hirs;
         };
 
-        std::istream& stream;
         int cache_size;
-        int data_size;
 
         int lirsCapacity;
         int hirsCapacity;
@@ -71,21 +70,26 @@ namespace lirs_cache
 
         void renew_hir_cache (const T& elem)
         {
+            auto& storage_elem = cache_storage[elem];
+
             if (hirs_cache.size() < hirsCapacity)
             {
                 hirs_cache.push_front(elem);
-                cache_storage[elem].pos_hirs = hirs_cache.begin();
-                cache_storage[elem].located_in_hirs = loc_status::in;
+                storage_elem.pos_hirs = hirs_cache.begin();
+                storage_elem.located_in_hirs = loc_status::in;
                 return;
             }
 
             int first_hir = hirs_cache.back();
-            loc_status is_in_history = cache_storage[first_hir].located_in_history;
+
+            auto& storage_first_hir = cache_storage[first_hir];
+
+            loc_status is_in_history = storage_first_hir.located_in_history;
 
             if (is_in_history == loc_status::in)
             {
-                cache_storage[first_hir].st = status::non_res_hir;
-                cache_storage[first_hir].located_in_hirs = loc_status::out;
+                storage_first_hir.st = status::non_res_hir;
+                storage_first_hir.located_in_hirs = loc_status::out;
             }
             else
             {
@@ -94,24 +98,25 @@ namespace lirs_cache
 
             hirs_cache.pop_back();
             hirs_cache.push_front(elem);
-            cache_storage[elem].pos_hirs = hirs_cache.begin();
-            cache_storage[elem].located_in_hirs = loc_status::in;
+            storage_elem.pos_hirs = hirs_cache.begin();
+            storage_elem.located_in_hirs = loc_status::in;
         }
 
         void cut ()
         {
-            int first_history_elem = cache_history.back();
-            status stat = cache_storage[first_history_elem].st;
-
-            while (1)
+            while (true)
             {
+                int first_history_elem = cache_history.back();
+                auto& storage_first_hist_elem = cache_storage[first_history_elem];
+                status stat = storage_first_hist_elem.st;
+
                 if (stat != status::lir)
                 {
                     int is_res = (stat == status::res_hir);
                     cache_history.pop_back();
                     if (is_res)
                     {
-                        cache_storage[first_history_elem].located_in_history = loc_status::out;
+                        storage_first_hist_elem.located_in_history = loc_status::out;
                     }
                     else
                     {
@@ -120,51 +125,50 @@ namespace lirs_cache
                 }
                 else if (lirs_size > lirsCapacity)
                 {
-                    renew_hir_cache (first_history_elem);
+                    renew_hir_cache(first_history_elem);
                     cache_history.pop_back();
-                    cache_storage[first_history_elem].located_in_history = loc_status::out;
-                    cache_storage[first_history_elem].st = status::res_hir;
+                    storage_first_hist_elem.located_in_history = loc_status::out;
+                    storage_first_hist_elem.st = status::res_hir;
                     lirs_size --;
                 }
                 else
                 {
                     break;
                 }
-
-                first_history_elem = cache_history.back();
-                stat = cache_storage[first_history_elem].st;
             }
         }
 
         void process_lir (const T& elem)
         {
-            raise_elem_in_history (elem);
-            cut ();
+            raise_elem_in_history(elem);
+            cut();
         }
 
         void process_res_hir (const T& elem)
         {
-            loc_status is_in_history = cache_storage[elem].located_in_history;
+            auto& storage_elem = cache_storage[elem];
+
+            loc_status is_in_history = storage_elem.located_in_history;
 
             if (is_in_history == loc_status::in)
             {
-                raise_elem_in_history (elem);
-                cache_storage[elem].st = status::lir;
+                raise_elem_in_history(elem);
+                storage_elem.st = status::lir;
                 lirs_size ++;
-                if (cache_storage[elem].located_in_hirs == loc_status::in)
+                if (storage_elem.located_in_hirs == loc_status::in)
                 {
-                    hirs_cache.erase(cache_storage[elem].pos_hirs);
-                    cache_storage[elem].located_in_hirs = loc_status::out;
+                    hirs_cache.erase(storage_elem.pos_hirs);
+                    storage_elem.located_in_hirs = loc_status::out;
                 }
 
-                cut ();
+                cut();
             }
             else
             {
-                raise_elem_in_hirs (elem);
+                raise_elem_in_hirs(elem);
                 cache_history.push_front(elem);
-                cache_storage[elem].pos_history = cache_history.begin();
-                cache_storage[elem].located_in_history = loc_status::in;
+                storage_elem.pos_history = cache_history.begin();
+                storage_elem.located_in_history = loc_status::in;
             }
         }
 
@@ -173,7 +177,7 @@ namespace lirs_cache
             cache_history.push_front(elem);
             cache_storage.insert({elem, {status::res_hir, loc_status::in, loc_status::out, cache_history.begin()}});
 
-            renew_hir_cache (elem);
+            renew_hir_cache(elem);
         }
 
         void process_non_res_hir (const T& elem)
@@ -182,14 +186,12 @@ namespace lirs_cache
             cache_storage[elem].st = status::lir;
             lirs_size++;
 
-            cut ();
+            cut();
         }
 
     public:
-        cache(std::istream& stream) : stream(stream)
+        cache(int cache_size) : cache_size(cache_size)
         {
-            stream >> cache_size >> data_size;
-
             lirs_size = 0;
 
             if (cache_size > 2)
@@ -204,7 +206,7 @@ namespace lirs_cache
             }
             else
             {
-                throw "Incorrect cache size";
+                throw std::runtime_error("Incorrect cache size");
             }
         }
 
@@ -218,43 +220,34 @@ namespace lirs_cache
 
             status stat = cache_storage[elem].st;
 
-            if (stat == status::lir)
-            {
-                process_lir(elem);
-            }
-            else if (stat == status::res_hir)
-            {
-                process_res_hir(elem);
-            }
-            else
-            {
-                process_non_res_hir(elem);
-            }
+            if (stat == status::lir)          process_lir(elem);
+            else if (stat == status::res_hir) process_res_hir(elem);
+            else                              process_non_res_hir(elem);
 
             return true;
         }
-
-        int count_cache_hits ()
-        {
-            int hits = 0;
-            try
-            {
-                for (int i = 0; i < data_size; i++)
-                {
-                    T elem = 0;
-                    stream >> elem;
-                    hits = get_block(elem) ? hits + 1 : hits;
-                }
-            }
-            catch (const char* error_message)
-            {
-                std::cout << error_message << std::endl;
-                exit (1);
-            }
-
-            return hits;
-        }
     };
+
+    template <typename T>
+    int count_cache_hits (std::istream& stream)
+    {
+        int cache_size = 0;
+        int data_size  = 0;
+
+        stream >> cache_size >> data_size;
+        cache<T> cache(cache_size);
+
+        int hits = 0;
+
+        for (int i = 0; i < data_size; i++)
+        {
+            T elem = 0;
+            stream >> elem;
+            hits += cache.get_block(elem);
+        }
+
+        return hits;
+    }
 }
 
 #endif

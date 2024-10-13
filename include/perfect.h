@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <utility>
 #include <istream>
+#include <queue>
 
 namespace perf_cache
 {
@@ -16,44 +17,38 @@ namespace perf_cache
     {
     private:
         using ListIt = typename std::list<T>::iterator;
-        using VecIt  = typename std::vector<T>::iterator;
-        using ItDiff = typename std::vector<T>::iterator::difference_type;
-
-        std::istream& stream;
 
         int cache_size;
-        int data_size;
         int request_counter = 0;
 
         std::list<T> cache;
         std::vector<T> requests;
 
         std::unordered_map<T, ListIt> cache_storage;
-        std::unordered_map<T, int> requests_storage;
+        std::unordered_map<T, std::queue<int>> requests_storage;
 
         void replace_farthest_elem (const T& key)
         {
-            ItDiff farthest_dist = -1;
+            int farthest_dist = -1;
             ListIt candidate_to_rm = cache.begin();
 
             for (ListIt cache_elem = cache.begin(); cache_elem != cache.end(); cache_elem++)
             {
-                VecIt cached_request = std::find(requests.begin() + request_counter, requests.end(), *cache_elem);
+                auto& storage_elem = requests_storage[*cache_elem];
 
-                if (cached_request != requests.end())
-                {
-                    ItDiff distance = std::distance(requests.begin(), cached_request);
-
-                    if (distance > farthest_dist)
-                    {
-                        farthest_dist = distance;
-                        candidate_to_rm = cache_elem;
-                    }
-                }
-                else
+                if (storage_elem.empty())
                 {
                     candidate_to_rm = cache_elem;
                     break;
+                }
+
+                int cached_request = storage_elem.front();
+                int distance = cached_request - request_counter;
+
+                if (distance > farthest_dist)
+                {
+                    farthest_dist = distance;
+                    candidate_to_rm = cache_elem;
                 }
             }
 
@@ -65,25 +60,20 @@ namespace perf_cache
         }
 
     public:
-        perf_cache_t(std::istream& stream) : stream(stream)
+        perf_cache_t(int cache_size, std::vector<T> buff) : cache_size(cache_size), requests(buff)
         {
-            stream >> cache_size >> data_size;
-
-            requests.reserve(data_size);
-
-            for (int i = 0; i < data_size; i++)
+            for (int i = 0; i < requests.size(); i++)
             {
-                T page = 0;
-                stream >> page;
-                requests.push_back(page);
+                auto page = requests[i];
 
-                if (requests_storage.count(page))
+                if (!requests_storage[page].empty())
                 {
-                    requests_storage[page] ++;
+                    requests_storage[page].push(i);
                 }
                 else
                 {
-                    requests_storage.insert({page, 1});
+                    requests_storage.insert({page, {}});
+                    requests_storage[page].push(i);
                 }
             }
         }
@@ -91,10 +81,10 @@ namespace perf_cache
         bool get_block (T key)
         {
             request_counter++;
-            requests_storage[key] --;
+            requests_storage[key].pop();
 
-            if (cache_storage.count(key)) return true;
-            else if (requests_storage[key] == 0) return false;
+            if (cache_storage.count(key))           return true;
+            else if (requests_storage[key].empty()) return false;
 
             if (cache.size() < cache_size)
             {
@@ -104,23 +94,41 @@ namespace perf_cache
                 return false;
             }
 
-            replace_farthest_elem (key);
+            replace_farthest_elem(key);
 
             return false;
         }
-
-        int count_cache_hits ()
-        {
-            int hits = 0;
-
-            for (int i = 0; i < data_size; i++)
-            {
-                hits = get_block(requests[i]) ? hits + 1 : hits;
-            }
-
-            return hits;
-        }
     };
+
+    template <typename T>
+    int count_cache_hits (std::istream& stream)
+    {
+        int cache_size = 0;
+        int data_size  = 0;
+
+        std::vector<T> requests;
+
+        stream >> cache_size >> data_size;
+
+        requests.reserve(data_size);
+        for (int i = 0; i < data_size; i++)
+        {
+            T page = 0;
+            stream >> page;
+            requests.push_back(page);
+        }
+
+        perf_cache_t<T> cache(cache_size, requests);
+
+        int hits = 0;
+
+        for (auto page : requests)
+        {
+            hits += cache.get_block(page);
+        }
+
+        return hits;
+    }
 }
 
 #endif

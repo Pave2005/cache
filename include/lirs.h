@@ -220,9 +220,18 @@ namespace lirs_cache
 
             status stat = cache_storage[elem].st;
 
-            if (stat == status::lir)          process_lir(elem);
-            else if (stat == status::res_hir) process_res_hir(elem);
-            else                              process_non_res_hir(elem);
+            switch (stat)
+            {
+                case status::lir:
+                    process_lir(elem);
+                    break;
+                case status::res_hir:
+                    process_res_hir(elem);
+                    break;
+                default:
+                    process_non_res_hir(elem);
+                    break;
+            }
 
             return true;
         }

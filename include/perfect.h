@@ -62,6 +62,8 @@ namespace perf_cache
     public:
         perf_cache_t(int cache_size, std::vector<T> buff) : cache_size(cache_size), requests(buff)
         {
+            if (cache_size <= 0) throw std::runtime_error("Incorrect cache size");
+
             for (int i = 0; i < requests.size(); i++)
             {
                 auto page = requests[i];

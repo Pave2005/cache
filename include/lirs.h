@@ -36,7 +36,7 @@ namespace lirs_cache
         {
             status st;
             loc_status located_in_history = loc_status::out;
-            loc_status located_in_hirs = loc_status::out;
+            loc_status located_in_hirs    = loc_status::out;
             std::list<int>::iterator pos_history;
             std::list<int>::iterator pos_hirs;
         };
@@ -204,10 +204,7 @@ namespace lirs_cache
                 hirsCapacity = 1;
                 lirsCapacity = 1;
             }
-            else
-            {
-                throw std::runtime_error("Incorrect cache size");
-            }
+            else throw std::runtime_error("Incorrect cache size");
         }
 
         bool get_block (T elem)
@@ -228,7 +225,7 @@ namespace lirs_cache
                 case status::res_hir:
                     process_res_hir(elem);
                     break;
-                default:
+                case status::non_res_hir:
                     process_non_res_hir(elem);
                     break;
             }

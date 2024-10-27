@@ -10,6 +10,8 @@
 #include "lirs.h"
 #include "perfect.h"
 
+#include "utils.h"
+
 namespace test_funcs
 {
 	std::string get_result (const std::string& filename, bool perf)
@@ -22,8 +24,37 @@ namespace test_funcs
             exit(1);
         }
 
-        if (perf) hits = perf_cache::count_cache_hits<int>(file);
-        else      hits = lirs_cache::count_cache_hits<int>(file);
+        if (perf)
+        {
+            int cache_size = 0;
+            int data_size  = 0;
+
+            std::vector<int> requests;
+
+            file >> cache_size >> data_size;
+
+            requests.reserve(data_size);
+            for (int i = 0; i < data_size; i++)
+            {
+                int page = 0;
+                file >> page;
+                requests.push_back(page);
+            }
+
+            perf_cache::perf_cache_t<int> cache(cache_size, utils::slow_get_page<int>, requests);
+
+            hits = utils::count_cache_hits<int>(cache, requests, file);
+        }
+        else
+        {
+            int cache_size = 0;
+            int data_size  = 0;
+
+            file >> cache_size >> data_size;
+            lirs_cache::cache<int> cache(cache_size, utils::slow_get_page<int>);
+
+            hits = utils::count_cache_hits<int>(cache, data_size, file);
+        }
 
         file.close();
         return std::to_string(hits);

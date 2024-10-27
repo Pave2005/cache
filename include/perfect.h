@@ -21,6 +21,8 @@ namespace perf_cache
         int cache_size;
         int request_counter = 0;
 
+        T (*slow_get_page)(T key);
+
         std::list<T> cache;
         std::vector<T> requests;
 
@@ -60,7 +62,8 @@ namespace perf_cache
         }
 
     public:
-        perf_cache_t(int cache_size, std::vector<T> buff) : cache_size(cache_size), requests(buff)
+        perf_cache_t(int cache_size, T (*slow_get_page)(T key), std::vector<T> buff)
+                    : cache_size(cache_size), slow_get_page(slow_get_page), requests(buff)
         {
             if (cache_size <= 0) throw std::runtime_error("Incorrect cache size");
 
@@ -88,49 +91,20 @@ namespace perf_cache
             if (cache_storage.count(key))           return true;
             else if (requests_storage[key].empty()) return false;
 
+            T elem = slow_get_page(key);
             if (cache.size() < cache_size)
             {
-                cache.push_front(key);
-                cache_storage.emplace(key, cache.begin());
+                cache.push_front(elem);
+                cache_storage.emplace(elem, cache.begin());
 
                 return false;
             }
 
-            replace_farthest_elem(key);
+            replace_farthest_elem(elem);
 
             return false;
         }
     };
-
-    template <typename T>
-    int count_cache_hits (std::istream& stream)
-    {
-        int cache_size = 0;
-        int data_size  = 0;
-
-        std::vector<T> requests;
-
-        stream >> cache_size >> data_size;
-
-        requests.reserve(data_size);
-        for (int i = 0; i < data_size; i++)
-        {
-            T page = 0;
-            stream >> page;
-            requests.push_back(page);
-        }
-
-        perf_cache_t<T> cache(cache_size, requests);
-
-        int hits = 0;
-
-        for (auto page : requests)
-        {
-            hits += cache.get_block(page);
-        }
-
-        return hits;
-    }
 }
 
 #endif

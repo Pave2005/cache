@@ -43,6 +43,8 @@ namespace lirs_cache
 
         int cache_size;
 
+        T (*slow_get_page)(T key);
+
         int lirsCapacity;
         int hirsCapacity;
         int lirs_size;
@@ -50,31 +52,31 @@ namespace lirs_cache
         std::list<T> hirs_cache;
         std::unordered_map<T, node> cache_storage;
 
-        void raise_elem_in_history (const T& elem)
+        void raise_elem_in_history (const T& key)
         {
-            auto& history_pos = cache_storage[elem].pos_history;
+            auto& history_pos = cache_storage[key].pos_history;
 
             cache_history.erase(history_pos);
-            cache_history.push_front(elem);
+            cache_history.push_front(key);
             history_pos = cache_history.begin();
         }
 
-        void raise_elem_in_hirs (const T& elem)
+        void raise_elem_in_hirs (const T& key)
         {
-            auto& hirs_pos = cache_storage[elem].pos_hirs;
+            auto& hirs_pos = cache_storage[key].pos_hirs;
 
             hirs_cache.erase(hirs_pos);
-            hirs_cache.push_front(elem);
+            hirs_cache.push_front(key);
             hirs_pos = hirs_cache.begin();
         }
 
-        void renew_hir_cache (const T& elem)
+        void renew_hir_cache (const T& key)
         {
-            auto& storage_elem = cache_storage[elem];
+            auto& storage_elem = cache_storage[key];
 
             if (hirs_cache.size() < hirsCapacity)
             {
-                hirs_cache.push_front(elem);
+                hirs_cache.push_front(key);
                 storage_elem.pos_hirs = hirs_cache.begin();
                 storage_elem.located_in_hirs = loc_status::in;
                 return;
@@ -97,7 +99,7 @@ namespace lirs_cache
             }
 
             hirs_cache.pop_back();
-            hirs_cache.push_front(elem);
+            hirs_cache.push_front(key);
             storage_elem.pos_hirs = hirs_cache.begin();
             storage_elem.located_in_hirs = loc_status::in;
         }
@@ -138,21 +140,21 @@ namespace lirs_cache
             }
         }
 
-        void process_lir (const T& elem)
+        void process_lir (const T& key)
         {
-            raise_elem_in_history(elem);
+            raise_elem_in_history(key);
             cut();
         }
 
-        void process_res_hir (const T& elem)
+        void process_res_hir (const T& key)
         {
-            auto& storage_elem = cache_storage[elem];
+            auto& storage_elem = cache_storage[key];
 
             loc_status is_in_history = storage_elem.located_in_history;
 
             if (is_in_history == loc_status::in)
             {
-                raise_elem_in_history(elem);
+                raise_elem_in_history(key);
                 storage_elem.st = status::lir;
                 lirs_size ++;
                 if (storage_elem.located_in_hirs == loc_status::in)
@@ -165,32 +167,34 @@ namespace lirs_cache
             }
             else
             {
-                raise_elem_in_hirs(elem);
-                cache_history.push_front(elem);
+                raise_elem_in_hirs(key);
+                cache_history.push_front(key);
                 storage_elem.pos_history = cache_history.begin();
                 storage_elem.located_in_history = loc_status::in;
             }
         }
 
-        void process_new (const T& elem)
+        void process_new (const T& key)
         {
+            T elem = slow_get_page(key);
+
             cache_history.push_front(elem);
             cache_storage.insert({elem, {status::res_hir, loc_status::in, loc_status::out, cache_history.begin()}});
 
-            renew_hir_cache(elem);
+            renew_hir_cache(key);
         }
 
-        void process_non_res_hir (const T& elem)
+        void process_non_res_hir (const T& key)
         {
-            raise_elem_in_history(elem);
-            cache_storage[elem].st = status::lir;
+            raise_elem_in_history(key);
+            cache_storage[key].st = status::lir;
             lirs_size++;
 
             cut();
         }
 
     public:
-        cache(int cache_size) : cache_size(cache_size)
+        cache(int cache_size, T (*slow_get_page)(T key)) : cache_size(cache_size), slow_get_page(slow_get_page)
         {
             lirs_size = 0;
 
@@ -207,53 +211,32 @@ namespace lirs_cache
             else throw std::runtime_error("Incorrect cache size");
         }
 
-        bool get_block (T elem)
+        bool get_block (T key)
         {
-            if (!(cache_storage.count(elem)))
+            if (!(cache_storage.count(key)))
             {
-                process_new (elem);
+                process_new (key);
                 return false;
             }
 
-            status stat = cache_storage[elem].st;
+            status stat = cache_storage[key].st;
 
             switch (stat)
             {
                 case status::lir:
-                    process_lir(elem);
+                    process_lir(key);
                     break;
                 case status::res_hir:
-                    process_res_hir(elem);
+                    process_res_hir(key);
                     break;
                 case status::non_res_hir:
-                    process_non_res_hir(elem);
+                    process_non_res_hir(key);
                     break;
             }
 
             return true;
         }
     };
-
-    template <typename T>
-    int count_cache_hits (std::istream& stream)
-    {
-        int cache_size = 0;
-        int data_size  = 0;
-
-        stream >> cache_size >> data_size;
-        cache<T> cache(cache_size);
-
-        int hits = 0;
-
-        for (int i = 0; i < data_size; i++)
-        {
-            T elem = 0;
-            stream >> elem;
-            hits += cache.get_block(elem);
-        }
-
-        return hits;
-    }
 }
 
 #endif

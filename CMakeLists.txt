@@ -17,7 +17,8 @@ option(ENABLE_EXTRA "Big data extra tests for lirs and perfect" OFF)
 if(BUILD_LIRS)
 	add_executable(lirs ./lirs_cache.cpp)
 	target_include_directories(lirs PRIVATE
-		                       ${CMAKE_CURRENT_SOURCE_DIR}/include)
+		                       ${CMAKE_CURRENT_SOURCE_DIR}/include
+							   ${CMAKE_CURRENT_SOURCE_DIR}/utils)
 
 	target_compile_options(lirs PRIVATE -O2)
 endif()
@@ -26,7 +27,8 @@ endif()
 if(BUILD_PERFECT)
 	add_executable(perfect ./perfect_cache.cpp)
 	target_include_directories(perfect PRIVATE
-		                       ${CMAKE_CURRENT_SOURCE_DIR}/include)
+		                       ${CMAKE_CURRENT_SOURCE_DIR}/include
+							   ${CMAKE_CURRENT_SOURCE_DIR}/utils)
 
 	target_compile_options(perfect PRIVATE -O2)
 endif()

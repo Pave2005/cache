@@ -20,7 +20,8 @@ target_link_libraries(lirs_tests
 
 target_include_directories(lirs_tests PRIVATE
 	                       ${CMAKE_SOURCE_DIR}/unit_tests/funcs
-	                       ${CMAKE_SOURCE_DIR}/include)
+	                       ${CMAKE_SOURCE_DIR}/include
+						   ${CMAKE_SOURCE_DIR}/utils)
 
 if(ENABLE_EXTRA)
     target_compile_definitions(lirs_tests PRIVATE EXTRA)
